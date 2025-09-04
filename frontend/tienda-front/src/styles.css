@@ -1,6 +1,10 @@
-/* You can add global styles to this file, and also import other style files */
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: #f4f7f6;
+  /* Degradado suave para el fondo */
+  background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
   margin: 0;
+  display: flex; /* Para centrar el login si no está el router-outlet */
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
