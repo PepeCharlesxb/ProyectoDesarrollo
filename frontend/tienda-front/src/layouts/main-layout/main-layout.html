@@ -1,7 +1,21 @@
-<app-header />
+<div class="layout-container">
+  <aside class="sidebar" *ngIf="authService.currentUser()?.role === 'admin'">
+    <div class="sidebar-header">
+      <h3>Panel Admin</h3>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a routerLink="/admin/dashboard">Dashboard</a></li>
+      <li><a routerLink="/admin/products">Productos</a></li>
+      <li><a href="#">Pedidos</a></li>
+      <li><a href="#">Usuarios</a></li>
+    </ul>
+  </aside>
 
-<main>
-  <router-outlet />
-</main>
-
-<app-footer />
+  <div class="main-content">
+    <app-header />
+    <main>
+      <router-outlet />
+    </main>
+    <app-footer />
+  </div>
+</div>

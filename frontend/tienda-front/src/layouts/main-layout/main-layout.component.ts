@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../../app/components/header/header.component';
 import { FooterComponent } from '../../app/components/footer/footer.component';
+import { AuthService } from '../../services/auth.service'; // <-- Importa el servicio
+
 @Component({
   selector: 'app-main-layout',
   standalone: true,
@@ -16,5 +18,6 @@ import { FooterComponent } from '../../app/components/footer/footer.component';
   styleUrl: './main-layout.css'
 })
 export class MainLayoutComponent {
-
+  // Inyectamos el servicio para poder usarlo en la plantilla
+  authService = inject(AuthService); 
 }
