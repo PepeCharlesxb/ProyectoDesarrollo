@@ -1,48 +1,70 @@
 <?php
-// --- INICIO DE CORRECCIÓN CORS ---
-// 1. Mover las cabeceras al principio de todo.
-header("Access-Control-Allow-Origin: http://localhost:4200"); // Permitir solo a tu app de Angular
+// Cabeceras CORS (como las teníamos)
+header("Access-Control-Allow-Origin: http://localhost:4200");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, OPTIONS"); // Permitir POST y OPTIONS
+header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// 2. Manejar la petición de sondeo (preflight request) del navegador
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
-    exit(); // Terminar el script aquí para las peticiones OPTIONS
+    exit();
 }
-// --- FIN DE CORRECCIÓN CORS ---
 
+// Incluimos nuestro archivo de conexión
+include_once '../config/database.php';
 
-// El resto del código es igual, pero ahora está después de la validación CORS.
+// Verificamos que el método sea POST
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
+    // Creamos una instancia de la base de datos y obtenemos la conexión
+    $database = new Database();
+    $db = $database->getConnection();
+    
     $data = json_decode(file_get_contents("php://input"));
 
     if (!empty($data->email) && !empty($data->password)) {
-        
-        // Lógica de validación (simulada)
-        if ($data->email == 'admin@tienda.com' && $data->password == '123456') {
-            http_response_code(200);
-            echo json_encode([
-                "message" => "Login exitoso.",
-                "user" => ["email" => "admin@tienda.com", "role" => "admin"]
-            ]);
-        } else if ($data->email == 'cliente@tienda.com' && $data->password == '123456') {
-            http_response_code(200);
-            echo json_encode([
-                "message" => "Login exitoso.",
-                "user" => ["email" => "cliente@tienda.com", "role" => "cliente"]
-            ]);
+
+        // Preparamos la consulta para evitar inyecciones SQL
+        $query = "SELECT email, password, role FROM users WHERE email = :email LIMIT 0,1";
+        $stmt = $db->prepare($query);
+
+        // Limpiamos y vinculamos el parámetro
+        $email = htmlspecialchars(strip_tags($data->email));
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+
+        $num = $stmt->rowCount();
+
+        // Si se encontró el usuario
+        if ($num > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $password_from_db = $row['password'];
+
+            // Verificamos la contraseña
+            if (password_verify($data->password, $password_from_db)) {
+                // Contraseña correcta
+                http_response_code(200);
+                echo json_encode([
+                    "message" => "Login exitoso.",
+                    "user" => [
+                        "email" => $row['email'],
+                        "role" => $row['role']
+                    ]
+                ]);
+            } else {
+                // Contraseña incorrecta
+                http_response_code(401);
+                echo json_encode(["message" => "Credenciales incorrectas."]);
+            }
         } else {
-            http_response_code(401);
-            echo json_encode(["message" => "Credenciales incorrectas."]);
+            // No se encontró el usuario
+            http_response_code(404);
+            echo json_encode(["message" => "Usuario no encontrado."]);
         }
     } else {
         http_response_code(400);
         echo json_encode(["message" => "Datos incompletos."]);
     }
 }
-// Se eliminó el último 'else' porque ya no es necesario
 ?>
