@@ -1,7 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http'; // 1. Importa HttpClient
+import { Observable, tap, catchError, of } from 'rxjs'; // 2. Importa herramientas de RxJS
 
-// 1. Definimos una interfaz para el usuario
+// La interfaz de Usuario sigue igual
 export interface User {
   email: string;
   role: 'cliente' | 'admin' | 'personal';
@@ -11,34 +13,35 @@ export interface User {
   providedIn: 'root'
 })
 export class AuthService {
-  // 2. Usamos una señal para guardar el usuario actual (o null si no hay sesión)
+  // 3. URL de tu API. Asegúrate de que 'proyectodesarrollo' coincida con el nombre de tu carpeta en htdocs.
+  private apiUrl = 'http://localhost/App/api/auth/login.php';
+  
   currentUser = signal<User | null>(null);
 
-  constructor(private router: Router) { }
+  // 4. Inyecta HttpClient y Router
+  constructor(private http: HttpClient, private router: Router) { }
 
-  // 3. Simulación de la función de login
-  login(email: string, password: string):boolean {
-    // En un futuro, aquí harías una llamada HTTP a tu backend con MySQL
-    // Por ahora, simulamos la lógica
-    if (email === 'admin@tienda.com' && password === '123456') {
-      const user: User = { email: 'admin@tienda.com', role: 'admin' };
-      this.currentUser.set(user); // Guardamos el usuario en la señal
-      console.log('Login exitoso como Administrador');
-      return true;
-    } else if (email === 'cliente@tienda.com' && password === '123456') {
-      const user: User = { email: 'cliente@tienda.com', role: 'cliente' };
-      this.currentUser.set(user);
-      console.log('Login exitoso como Cliente');
-      return true;
-    }
-    
-    // Si las credenciales son incorrectas
-    console.error('Credenciales incorrectas');
-    return false;
+  // 5. El método login ahora devuelve un Observable
+  login(credentials: {email: string, password: string}): Observable<any> {
+    return this.http.post<any>(this.apiUrl, credentials).pipe(
+      tap(response => {
+        // Esto se ejecuta si la petición es exitosa (código 200)
+        if (response && response.user) {
+          console.log('Respuesta del backend:', response);
+          this.currentUser.set(response.user); // Guardamos el usuario que nos dio el backend
+        }
+      }),
+      catchError(error => {
+        // Esto se ejecuta si el backend devuelve un error (ej. 401 No Autorizado)
+        console.error('Error en el login:', error);
+        this.currentUser.set(null);
+        return of(null); // Devuelve un observable nulo para que el componente sepa que falló
+      })
+    );
   }
 
   logout() {
-    this.currentUser.set(null); // Limpiamos el usuario
-    this.router.navigate(['/login']); // Redirigimos al login
+    this.currentUser.set(null);
+    this.router.navigate(['/login']);
   }
 }

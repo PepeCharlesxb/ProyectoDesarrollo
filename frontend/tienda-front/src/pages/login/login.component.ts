@@ -27,39 +27,43 @@ export class LoginComponent {
     });
   }
 
-  onSubmit(): void {
+ onSubmit(): void {
     if (!this.loginForm.valid) {
       return;
     }
     
-    this.loginError = false; // Reseteamos el error
-    const email = this.loginForm.value.email;
-    const password = this.loginForm.value.password;
+    this.loginError = false;
+    const credentials = this.loginForm.value;
 
-    // Llamamos al servicio de login
-    const isLoggedIn = this.authService.login(email, password);
-
-    if (isLoggedIn) {
-      // Si el login fue exitoso, obtenemos el rol
-      const userRole = this.authService.currentUser()?.role;
-
-      // Redirigimos según el rol
-      switch (userRole) {
-        case 'admin':
-          this.router.navigate(['/admin/dashboard']); // Futura ruta de admin
-          break;
-        case 'cliente':
-          this.router.navigate(['/products']);
-          break;
-        case 'personal':
-          this.router.navigate(['/staff/tasks']); // Futura ruta de personal
-          break;
-        default:
-          this.router.navigate(['/login']); // Si algo falla, de vuelta al login
+    // Ahora nos suscribimos a la respuesta del servicio
+    this.authService.login(credentials).subscribe({
+      next: (response) => {
+        // Esto se ejecuta si el login es exitoso
+        if (response && response.user) {
+          const userRole = response.user.role;
+          
+          // Redirigimos según el rol que nos dio el backend
+          switch (userRole) {
+            case 'admin':
+              this.router.navigate(['/admin/dashboard']);
+              break;
+            case 'cliente':
+              this.router.navigate(['/products']);
+              break;
+            // ... otros casos
+            default:
+              this.router.navigate(['/login']);
+          }
+        } else {
+          // Si el backend responde OK pero sin datos de usuario (caso raro)
+          this.loginError = true;
+        }
+      },
+      error: (err) => {
+        // Esto se ejecuta si hay un error en la petición HTTP (ej. 401)
+        this.loginError = true;
+        console.error('Error de autenticación desde el componente:', err);
       }
-    } else {
-      // Si el login falla, mostramos un error
-      this.loginError = true;
-    }
+    });
   }
 }
